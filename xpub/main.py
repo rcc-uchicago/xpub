@@ -20,11 +20,12 @@ Examples:
 import os
 import json
 import argparse
+import Tkinter
+import tkFileDialog
 from datetime import datetime
 from mediatype import get_mediatype
 from action import prompt_for_action, save_json
 from prompter import Prompt, Prompter
-
 
 def run():
     
@@ -35,6 +36,9 @@ def run():
         pkg_dir = os.path.dirname(os.path.abspath(__file__))
         cwd_config = os.path.join(pkg_dir, 'config')
     CONFIG_DIR = os.environ.get('XROMM_CONFIG', cwd_config)
+    
+    cache_path  = os.path.join(CONFIG_DIR, 'cache.json')    # cached info
+    cache = json.load(open(cache_path))     # load cached study/trial options
     
     # setup the argument parser
     parser = argparse.ArgumentParser(version="0.1", description=__doc__)
@@ -52,11 +56,14 @@ def run():
     group.add_argument('--trial', 
                         action="store_true",
                         help="Create a new trial")
-    group.add_argument('file', nargs='?', help="Transfer a file")
+    group.add_argument('--file',
+			action="store_true",
+			help="Transfer a file")
     group.add_argument('--healthrecord', 
                        action="store_true", 
                        help="Create a heatlh report in the Hatabase")
-    
+    group.add_argument('filename', nargs='?', help="Transfer a file")
+
     args = parser.parse_args()
 
     if args.study:
@@ -65,6 +72,16 @@ def run():
         resource = 'trial.json'
     elif args.file:
         resource = 'file.json'
+	root = Tkinter.Tk()
+	root.withdraw() #use to hide tkinter window
+	root.update()
+	if not cache['src_path']:
+		currdir = os.getcwd()
+	else:
+		currdir = cache['src_path']
+	args.filename = tkFileDialog.askopenfilename(parent=root, initialdir=currdir, title='Please select a file')
+	if not args.filename:
+		raise SystemExit
         mt = get_mediatype()    # get config for specific mediatype
         try:                    # set config for selected mediatype
             mt_config_path = os.path.join(CONFIG_DIR, 'mediatypes', mt + '.json')
@@ -79,11 +96,7 @@ def run():
         raise SystemExit
     
     config_path = os.path.join(CONFIG_DIR, resource)        # resource config
-    cache_path  = os.path.join(CONFIG_DIR, 'cache.json')    # cached info
-        
     config = json.load(open(config_path))   # load resource config file
-    cache = json.load(open(cache_path))     # load cached study/trial options
-    
     
     # supplement config with cached info if out of date
     if config['updated_at'] < cache['updated_at']:
@@ -109,7 +122,7 @@ def run():
     prompt()                                            # prompt for input
     
     # ok . . . with input collected, what should be done with it?
-    prompt_for_action(prompt.results, args.file)    # view/save/send/discard
+    prompt_for_action(prompt.results, args.filename)    # view/save/send/discard
     
     if prompt.config_revisions:                     # if new input was seen ...
         save_json(prompt.config, config_path)       # update config

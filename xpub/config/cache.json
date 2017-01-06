@@ -4,6 +4,8 @@
     "updated_at": "2015-05-08T11:07:11.819927Z", 
     "version": "1", 
     "key": "cache", 
+    "dst_path": "",
+    "src_path": "",
     "studies": {
         "pig-chewing-study": [
             "trial-1", 
